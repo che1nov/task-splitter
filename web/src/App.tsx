@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import './App.css';
 
+// API base URL from environment variable or fallback to localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
 interface User {
   id: string;
   name: string;
@@ -97,7 +100,7 @@ function App() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -159,7 +162,7 @@ function App() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -206,7 +209,7 @@ function App() {
     
     const poll = async (): Promise<void> => {
       try {
-        const response = await fetch(`http://localhost:8080/api/v1/split/${requestId}/status`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/split/${requestId}/status`, {
           headers: {
             'Authorization': 'Bearer mock_token_user123'
           }
@@ -294,7 +297,7 @@ function App() {
     
     try {
       // Сначала создаем задачу в базе данных
-      const createTaskResponse = await fetch('http://localhost:8080/api/v1/tasks', {
+      const createTaskResponse = await fetch(`${API_BASE_URL}/api/v1/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +319,7 @@ function App() {
       console.log('✅ Задача создана:', createdTask);
 
       // Теперь отправляем задачу на разбивку
-      const response = await fetch('http://localhost:8080/api/v1/split', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/split`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
