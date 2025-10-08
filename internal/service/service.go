@@ -255,16 +255,18 @@ func (s *taskService) SplitTask(userID uint, req *models.SplitTaskRequest) (*mod
 }
 
 func (s *taskService) GetSplitStatus(requestID string) (*models.SplitStatusResponse, error) {
-	// Сначала проверяем кеш Redis
-	ctx := context.Background()
-	cachedResult, err := s.redisClient.Get(ctx, "split_result:"+requestID).Result()
-	if err == nil {
-		// Результат найден в кеше
-		return &models.SplitStatusResponse{
-			RequestID: requestID,
-			Status:    "completed",
-			Result:    cachedResult,
-		}, nil
+	// Сначала проверяем кеш Redis (если доступен)
+	if s.redisClient != nil {
+		ctx := context.Background()
+		cachedResult, err := s.redisClient.Get(ctx, "split_result:"+requestID).Result()
+		if err == nil {
+			// Результат найден в кеше
+			return &models.SplitStatusResponse{
+				RequestID: requestID,
+				Status:    "completed",
+				Result:    cachedResult,
+			}, nil
+		}
 	}
 
 	// Если не в кеше, проверяем базу данных
@@ -334,6 +336,9 @@ func (s *authService) Register(ctx context.Context, username, email, password, f
 }
 
 func (s *authService) ValidateToken(ctx context.Context, token string) (*keycloak.TokenInfo, error) {
+	if s.keycloakClient == nil {
+		return nil, fmt.Errorf("keycloak client not available")
+	}
 	return s.keycloakClient.ValidateToken(ctx, token)
 }
 

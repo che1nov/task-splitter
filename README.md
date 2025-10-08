@@ -43,10 +43,38 @@ TaskSplitter — это современное веб-приложение дл�
 
 ## 🚀 Быстрый старт
 
-### 1. Клонирование репозитория
+### Вариант 1: Railway (Рекомендуется для продакшена)
+
+1. **Создайте проект в Railway:**
+   - Зайдите на [railway.app](https://railway.app)
+   - Нажмите "New Project" → "Deploy from GitHub repo"
+   - Выберите репозиторий `che1nov/task-splitter`
+
+2. **Добавьте PostgreSQL:**
+   - В Railway Dashboard → ваш проект
+   - Нажмите "+ New" → "Database" → "PostgreSQL"
+
+3. **Настройте переменные окружения:**
+   ```bash
+   SERVER_PORT=8080
+   SERVER_HOST=0.0.0.0
+   GIGACHAT_CLIENT_ID=61e2f9ef-d364-4190-8d41-5458d59872bf
+   GIGACHAT_SCOPE=GIGACHAT_API_PERS
+   GIGACHAT_AUTH_KEY=NjFlMmY5ZWYtZDM2NC00MTkwLThkNDEtNTQ1OGQ1OTg3MmJmOjUxZjBiZmNiLTk4MjMtNDhiNy04ZWRmLWY5ZTY5MmJjYzAxYg==
+   REACT_APP_API_URL=https://your-app-name.railway.app/api/v1
+   ```
+
+4. **Готово!** Railway автоматически задеплоит приложение.
+
+📖 **Подробная инструкция:** [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)  
+🔧 **Решение проблем:** [RAILWAY_QUICK_FIX.md](./RAILWAY_QUICK_FIX.md)
+
+### Вариант 2: Локальная разработка
+
+#### 1. Клонирование репозитория
 
 ```bash
-git clone https://github.com/your-username/task-splitter.git
+git clone https://github.com/che1nov/task-splitter.git
 cd task-splitter
 ```
 

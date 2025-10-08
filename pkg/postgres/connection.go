@@ -17,13 +17,13 @@ import (
 // NewConnection создает новое подключение к PostgreSQL
 func NewConnection(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	var dsn string
-	
+
 	// Проверяем наличие DATABASE_URL (Railway предоставляет это)
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
 		log.Printf("🔗 Using DATABASE_URL directly: %s", databaseURL)
 		dsn = databaseURL
 	} else {
-		log.Printf("📊 Using individual DB config: host=%s, port=%s, user=%s, dbname=%s", 
+		log.Printf("📊 Using individual DB config: host=%s, port=%s, user=%s, dbname=%s",
 			cfg.Host, cfg.Port, cfg.User, cfg.DBName)
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 			cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
@@ -160,7 +160,7 @@ func maskPassword(dsn string) string {
 		}
 		return parsedURL.String()
 	}
-	
+
 	// Если это обычный DSN, заменяем password=*** на password=***
 	return strings.ReplaceAll(dsn, "password=", "password=***")
 }

@@ -20,8 +20,10 @@ func NewClient(cfg config.RedisConfig) *redis.Client {
 	ctx := context.Background()
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to connect to Redis: %v", err))
+		fmt.Printf("⚠️  Failed to connect to Redis: %v\n", err)
+		return nil
 	}
 
+	fmt.Println("✅ Redis connected successfully")
 	return rdb
 }

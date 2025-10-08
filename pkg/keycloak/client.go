@@ -46,6 +46,12 @@ type TokenInfo struct {
 
 // NewClient создает новый клиент Keycloak
 func NewClient(cfg config.KeycloakConfig) *Client {
+	// Проверяем базовую конфигурацию
+	if cfg.URL == "" || cfg.Realm == "" || cfg.ClientID == "" {
+		fmt.Println("⚠️  Keycloak configuration incomplete, skipping connection test")
+		return nil
+	}
+
 	oauth2Config := &oauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
@@ -56,11 +62,28 @@ func NewClient(cfg config.KeycloakConfig) *Client {
 		},
 	}
 
-	return &Client{
+	client := &Client{
 		config:       cfg,
 		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		oauth2Config: oauth2Config,
 	}
+
+	// Проверяем подключение к Keycloak
+	wellKnownURL := fmt.Sprintf("%s/realms/%s/.well-known/openid_configuration", cfg.URL, cfg.Realm)
+	resp, err := client.httpClient.Get(wellKnownURL)
+	if err != nil {
+		fmt.Printf("⚠️  Failed to connect to Keycloak: %v\n", err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("⚠️  Keycloak server returned status %d\n", resp.StatusCode)
+		return nil
+	}
+
+	fmt.Println("✅ Keycloak connected successfully")
+	return client
 }
 
 // ValidateToken проверяет валидность токена

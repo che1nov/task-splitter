@@ -75,7 +75,7 @@ func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8080"),
-			Host: getEnv("SERVER_HOST", "localhost"),
+			Host: getEnv("SERVER_HOST", "0.0.0.0"),
 		},
 		Database: loadDatabaseConfig(),
 		Redis: RedisConfig{
@@ -135,7 +135,7 @@ func loadDatabaseConfig() DatabaseConfig {
 		// Парсим DATABASE_URL
 		// Формат: postgres://user:password@host:port/database?sslmode=require
 		config := parseDatabaseURL(databaseURL)
-		fmt.Printf("📊 Parsed DB config: host=%s, port=%s, user=%s, dbname=%s, sslmode=%s\n", 
+		fmt.Printf("📊 Parsed DB config: host=%s, port=%s, user=%s, dbname=%s, sslmode=%s\n",
 			config.Host, config.Port, config.User, config.DBName, config.SSLMode)
 		return config
 	}
@@ -156,10 +156,10 @@ func loadDatabaseConfig() DatabaseConfig {
 func parseDatabaseURL(databaseURL string) DatabaseConfig {
 	// Простой парсинг DATABASE_URL
 	// Формат: postgres://user:password@host:port/database?sslmode=require
-	
+
 	// Убираем префикс postgres://
 	url := strings.TrimPrefix(databaseURL, "postgres://")
-	
+
 	// Разделяем на части
 	parts := strings.Split(url, "@")
 	if len(parts) != 2 {
@@ -173,7 +173,7 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 			SSLMode:  "require",
 		}
 	}
-	
+
 	// Парсим user:password
 	userPass := strings.Split(parts[0], ":")
 	user := "postgres"
@@ -182,7 +182,7 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 		user = userPass[0]
 		password = userPass[1]
 	}
-	
+
 	// Парсим host:port/database
 	hostPortDB := strings.Split(parts[1], "/")
 	if len(hostPortDB) != 2 {
@@ -195,7 +195,7 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 			SSLMode:  "require",
 		}
 	}
-	
+
 	// Парсим host:port
 	hostPort := strings.Split(hostPortDB[0], ":")
 	host := "localhost"
@@ -204,11 +204,11 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 		host = hostPort[0]
 		port = hostPort[1]
 	}
-	
+
 	// Парсим database и параметры
 	dbName := hostPortDB[1]
 	sslMode := "require"
-	
+
 	// Убираем параметры из имени базы данных
 	if strings.Contains(dbName, "?") {
 		dbParts := strings.Split(dbName, "?")
@@ -221,7 +221,7 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 			}
 		}
 	}
-	
+
 	return DatabaseConfig{
 		Host:     host,
 		Port:     port,
