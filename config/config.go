@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -75,14 +76,7 @@ func Load() *Config {
 			Port: getEnv("SERVER_PORT", "8080"),
 			Host: getEnv("SERVER_HOST", "localhost"),
 		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			DBName:   getEnv("DB_NAME", "tasksplitter"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
+		Database: loadDatabaseConfig(),
 		Redis: RedisConfig{
 			Host:     getEnv("REDIS_HOST", "localhost"),
 			Port:     getEnv("REDIS_PORT", "6379"),
@@ -130,4 +124,104 @@ func getEnvAsInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+// loadDatabaseConfig загружает конфигурацию базы данных с поддержкой DATABASE_URL
+func loadDatabaseConfig() DatabaseConfig {
+	// Проверяем наличие DATABASE_URL (Railway предоставляет это)
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		// Парсим DATABASE_URL
+		// Формат: postgres://user:password@host:port/database?sslmode=require
+		return parseDatabaseURL(databaseURL)
+	}
+
+	// Используем отдельные переменные
+	return DatabaseConfig{
+		Host:     getEnv("DB_HOST", "localhost"),
+		Port:     getEnv("DB_PORT", "5432"),
+		User:     getEnv("DB_USER", "postgres"),
+		Password: getEnv("DB_PASSWORD", "postgres"),
+		DBName:   getEnv("DB_NAME", "tasksplitter"),
+		SSLMode:  getEnv("DB_SSLMODE", "disable"),
+	}
+}
+
+// parseDatabaseURL парсит DATABASE_URL в DatabaseConfig
+func parseDatabaseURL(databaseURL string) DatabaseConfig {
+	// Простой парсинг DATABASE_URL
+	// Формат: postgres://user:password@host:port/database?sslmode=require
+	
+	// Убираем префикс postgres://
+	url := strings.TrimPrefix(databaseURL, "postgres://")
+	
+	// Разделяем на части
+	parts := strings.Split(url, "@")
+	if len(parts) != 2 {
+		// Если не удалось распарсить, используем значения по умолчанию
+		return DatabaseConfig{
+			Host:     "localhost",
+			Port:     "5432",
+			User:     "postgres",
+			Password: "postgres",
+			DBName:   "tasksplitter",
+			SSLMode:  "require",
+		}
+	}
+	
+	// Парсим user:password
+	userPass := strings.Split(parts[0], ":")
+	user := "postgres"
+	password := "postgres"
+	if len(userPass) == 2 {
+		user = userPass[0]
+		password = userPass[1]
+	}
+	
+	// Парсим host:port/database
+	hostPortDB := strings.Split(parts[1], "/")
+	if len(hostPortDB) != 2 {
+		return DatabaseConfig{
+			Host:     "localhost",
+			Port:     "5432",
+			User:     user,
+			Password: password,
+			DBName:   "tasksplitter",
+			SSLMode:  "require",
+		}
+	}
+	
+	// Парсим host:port
+	hostPort := strings.Split(hostPortDB[0], ":")
+	host := "localhost"
+	port := "5432"
+	if len(hostPort) == 2 {
+		host = hostPort[0]
+		port = hostPort[1]
+	}
+	
+	// Парсим database и параметры
+	dbName := hostPortDB[1]
+	sslMode := "require"
+	
+	// Убираем параметры из имени базы данных
+	if strings.Contains(dbName, "?") {
+		dbParts := strings.Split(dbName, "?")
+		dbName = dbParts[0]
+		// Проверяем sslmode в параметрах
+		if strings.Contains(dbParts[1], "sslmode=") {
+			sslParts := strings.Split(dbParts[1], "sslmode=")
+			if len(sslParts) > 1 {
+				sslMode = strings.Split(sslParts[1], "&")[0]
+			}
+		}
+	}
+	
+	return DatabaseConfig{
+		Host:     host,
+		Port:     port,
+		User:     user,
+		Password: password,
+		DBName:   dbName,
+		SSLMode:  sslMode,
+	}
 }

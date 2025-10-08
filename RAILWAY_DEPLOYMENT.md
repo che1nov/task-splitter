@@ -61,13 +61,9 @@ git push origin main
 
 ### 3. Настройка базы данных
 1. В Railway Dashboard добавьте PostgreSQL плагин
-2. Railway автоматически установит переменные:
-   - `DATABASE_URL`
-   - `DB_HOST`
-   - `DB_PORT`
-   - `DB_USER`
-   - `DB_PASSWORD`
-   - `DB_NAME`
+2. Railway автоматически установит переменную `DATABASE_URL`
+3. Приложение автоматически распарсит `DATABASE_URL` и подключится к базе данных
+4. **Важно:** Не нужно устанавливать отдельные переменные `DB_HOST`, `DB_PORT`, etc.
 
 ### 4. Настройка переменных окружения
 1. Перейдите в Settings → Variables
@@ -112,8 +108,17 @@ curl -X POST https://your-app-name.railway.app/api/v1/auth/login \
 ## 🛠️ Troubleshooting:
 
 ### Проблема: База данных не подключается
-- Проверьте, что PostgreSQL плагин добавлен
-- Убедитесь, что `DB_SSLMODE=require`
+**Ошибка:** `failed to connect to host=localhost user=postgres database=tasksplitter`
+
+**Решение:**
+1. Убедитесь, что PostgreSQL плагин добавлен в Railway
+2. Проверьте, что переменная `DATABASE_URL` установлена автоматически
+3. **НЕ устанавливайте** отдельные переменные `DB_HOST`, `DB_PORT`, etc.
+4. Приложение автоматически распарсит `DATABASE_URL` и подключится к правильному хосту
+
+**Если проблема persists:**
+- Проверьте логи Railway для деталей ошибки
+- Убедитесь, что PostgreSQL плагин активен и работает
 
 ### Проблема: AI не работает
 - Проверьте переменные `GIGACHAT_*` или `OPENAI_*`
