@@ -11,14 +11,18 @@
 
 ### 2. Настройка сервиса
 
+**Вариант A: Использование Dockerfile (рекомендуется)**
+
+1. В настройках сервиса укажите:
+   - **Dockerfile Path**: `Dockerfile.frontend`
+   - Railway автоматически найдет и использует этот файл
+
+**Вариант B: Использование Node.js**
+
 1. В настройках сервиса укажите:
    - **Root Directory**: `web`
    - **Build Command**: `npm run build`
    - **Start Command**: `npm start`
-
-2. Или используйте Dockerfile (рекомендуется):
-   - Railway автоматически найдет `Dockerfile` в папке `web/`
-   - Никаких дополнительных настроек не требуется
 
 ### 3. Переменные окружения
 
@@ -66,14 +70,15 @@ railway up --service frontend
 ## Структура файлов
 
 ```
-web/
-├── Dockerfile          # Docker конфигурация для Railway
-├── railway.json        # Конфигурация Railway
-├── railway.env         # Переменные окружения для Railway
-├── nginx.conf          # Конфигурация nginx
-├── package.json        # Зависимости и скрипты
-└── src/
-    └── App.tsx         # Обновлен для работы с переменными окружения
+├── Dockerfile.frontend # Docker конфигурация для фронтенда (в корне)
+├── web/
+│   ├── Dockerfile      # Docker конфигурация для локальной разработки
+│   ├── railway.json    # Конфигурация Railway
+│   ├── railway.env      # Переменные окружения для Railway
+│   ├── nginx.conf       # Конфигурация nginx
+│   ├── package.json     # Зависимости и скрипты
+│   └── src/
+│       └── App.tsx      # Обновлен для работы с переменными окружения
 ```
 
 ## Примечания
