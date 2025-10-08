@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -130,11 +131,16 @@ func getEnvAsInt(key string, defaultValue int) int {
 func loadDatabaseConfig() DatabaseConfig {
 	// Проверяем наличие DATABASE_URL (Railway предоставляет это)
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		fmt.Printf("🔗 Found DATABASE_URL: %s\n", databaseURL)
 		// Парсим DATABASE_URL
 		// Формат: postgres://user:password@host:port/database?sslmode=require
-		return parseDatabaseURL(databaseURL)
+		config := parseDatabaseURL(databaseURL)
+		fmt.Printf("📊 Parsed DB config: host=%s, port=%s, user=%s, dbname=%s, sslmode=%s\n", 
+			config.Host, config.Port, config.User, config.DBName, config.SSLMode)
+		return config
 	}
 
+	fmt.Println("⚠️  DATABASE_URL not found, using individual variables")
 	// Используем отдельные переменные
 	return DatabaseConfig{
 		Host:     getEnv("DB_HOST", "localhost"),

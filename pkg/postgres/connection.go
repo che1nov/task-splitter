@@ -3,6 +3,9 @@ package postgres
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
+	"strings"
 	"task-splitter/config"
 	"task-splitter/internal/models"
 
@@ -13,8 +16,20 @@ import (
 
 // NewConnection создает новое подключение к PostgreSQL
 func NewConnection(cfg config.DatabaseConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	var dsn string
+	
+	// Проверяем наличие DATABASE_URL (Railway предоставляет это)
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		log.Printf("🔗 Using DATABASE_URL directly: %s", databaseURL)
+		dsn = databaseURL
+	} else {
+		log.Printf("📊 Using individual DB config: host=%s, port=%s, user=%s, dbname=%s", 
+			cfg.Host, cfg.Port, cfg.User, cfg.DBName)
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	}
+
+	log.Printf("🔌 Connecting to database with DSN: %s", maskPassword(dsn))
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -130,4 +145,22 @@ func seedData(db *gorm.DB) error {
 
 	log.Println("Initial data seeded successfully")
 	return nil
+}
+
+// maskPassword скрывает пароль в DSN для безопасного логирования
+func maskPassword(dsn string) string {
+	// Если это DATABASE_URL, парсим его
+	if strings.HasPrefix(dsn, "postgres://") {
+		parsedURL, err := url.Parse(dsn)
+		if err != nil {
+			return "postgres://***:***@***:***/***"
+		}
+		if parsedURL.User != nil {
+			parsedURL.User = url.UserPassword(parsedURL.User.Username(), "***")
+		}
+		return parsedURL.String()
+	}
+	
+	// Если это обычный DSN, заменяем password=*** на password=***
+	return strings.ReplaceAll(dsn, "password=", "password=***")
 }
