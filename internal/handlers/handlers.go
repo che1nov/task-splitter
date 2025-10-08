@@ -11,6 +11,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// HealthHandler обработчик для health check
+type HealthHandler struct{}
+
+// NewHealthHandler создает новый обработчик health check
+func NewHealthHandler() *HealthHandler {
+	return &HealthHandler{}
+}
+
+// HealthCheck проверяет состояние приложения
+// @Summary Health check
+// @Description Check application health status
+// @Tags health
+// @Accept json
+// @Produce json
+// @Success 200 {object} gin.H
+// @Router /health [get]
+func (h *HealthHandler) HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "healthy",
+		"message":   "TaskSplitter API is running",
+		"timestamp": "2025-01-08T10:30:00Z",
+	})
+}
+
 // UserHandler обработчик для работы с пользователями
 type UserHandler struct {
 	userService service.UserService

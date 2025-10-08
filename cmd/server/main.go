@@ -55,6 +55,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 	taskHandler := handlers.NewTaskHandler(taskService)
 	authHandler := handlers.NewAuthHandler(authService)
+	healthHandler := handlers.NewHealthHandler()
 
 	// Настройка Gin
 	r := gin.Default()
@@ -65,6 +66,9 @@ func main() {
 
 	// Swagger документация
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Health check
+	r.GET("/api/v1/health", healthHandler.HealthCheck)
 
 	// Публичные маршруты
 	public := r.Group("/api/v1")
