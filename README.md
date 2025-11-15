@@ -1,249 +1,217 @@
 # TaskSplitter
 
-TaskSplitter — это современное веб-приложение для разбивки задач на подзадачи с использованием искусственного интеллекта. Приложение построено на стеке Go, PostgreSQL, Keycloak и React.
+Приложение для разбивки задач на подзадачи с помощью ИИ. Когда у тебя большая задача, а ты не знаешь с чего начать — просто закинь её сюда, и получишь готовый план действий.
 
-## 🚀 Возможности
+Стек: Go + PostgreSQL + React + RabbitMQ
 
-- **ИИ-разбивка задач**: Автоматическое разбиение задач на логические подзадачи с помощью OpenAI GPT-4
-- **Управление задачами**: Полный CRUD для задач и подзадач
-- **Аутентификация**: Интеграция с Keycloak для безопасной аутентификации
-- **Роли пользователей**: Поддержка ролей free и premium
-- **Асинхронная обработка**: Использование RabbitMQ для обработки запросов на разбивку
-- **Кеширование**: Redis для быстрого доступа к результатам
-- **Современный UI**: React-интерфейс с TypeScript
-- **Docker**: Полная контейнеризация всех сервисов
+## Что умеет
 
-## 🏗️ Архитектура
+- Разбивает задачи на подзадачи через OpenAI/GigaChat
+- Обычный CRUD для задач (создать, посмотреть, обновить, удалить)
+- Авторизация через Keycloak (можно и без неё в demo-режиме)
+- Роли пользователей (free/premium)
+- Асинхронная обработка через RabbitMQ — задачи разбиваются в фоне
+- Redis для кеша результатов
+- React фронт на TypeScript
+- Все в Docker
+
+## Как это работает
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React UI      │    │   Go API        │    │   NLP Worker    │
-│   (Port 3000)   │◄──►│   (Port 8080)   │◄──►│   (Background)  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Keycloak      │    │   PostgreSQL    │    │   Redis         │
-│   (Port 8081)   │    │   (Port 5432)   │    │   (Port 6379)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌─────────────────┐
-                       │   RabbitMQ      │
-                       │   (Port 5672)   │
-                       └─────────────────┘
+Фронт (React) → API (Go) → Worker (фоновая обработка)
+                    ↓
+                PostgreSQL + Redis + RabbitMQ
 ```
 
-## 📋 Требования
+По сути API принимает запросы, кидает их в очередь RabbitMQ, а Worker подхватывает и обрабатывает. Результат сохраняется в БД и кеше.
 
-- Docker и Docker Compose
-- Go 1.21+ (для локальной разработки)
-- Node.js 18+ (для frontend разработки)
-- OpenAI API ключ (опционально, для ИИ-функций)
+## Что нужно
+- Docker и docker-compose (для локального запуска)
+- Node.js 18+ (для фронта)
+- OpenAI API ключ (если хочешь реальную разбивку задач)
 
-## 🚀 Быстрый старт
-
-### Вариант 1: Railway (Рекомендуется для продакшена)
-
-1. **Создайте проект в Railway:**
-   - Зайдите на [railway.app](https://railway.app)
-   - Нажмите "New Project" → "Deploy from GitHub repo"
-   - Выберите репозиторий `che1nov/task-splitter`
-
-2. **Добавьте PostgreSQL:**
-   - В Railway Dashboard → ваш проект
-   - Нажмите "+ New" → "Database" → "PostgreSQL"
-
-3. **Настройте переменные окружения:**
-   ```bash
-   SERVER_PORT=8080
-   SERVER_HOST=0.0.0.0
-   GIGACHAT_CLIENT_ID=61e2f9ef-d364-4190-8d41-5458d59872bf
-   GIGACHAT_SCOPE=GIGACHAT_API_PERS
-   GIGACHAT_AUTH_KEY=NjFlMmY5ZWYtZDM2NC00MTkwLThkNDEtNTQ1OGQ1OTg3MmJmOjUxZjBiZmNiLTk4MjMtNDhiNy04ZWRmLWY5ZTY5MmJjYzAxYg==
-   REACT_APP_API_URL=https://your-app-name.railway.app/api/v1
-   ```
-
-4. **Готово!** Railway автоматически задеплоит приложение.
-
-📖 **Подробная инструкция:** [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)  
-🔧 **Решение проблем:** [RAILWAY_QUICK_FIX.md](./RAILWAY_QUICK_FIX.md)
-
-### Вариант 2: Локальная разработка
-
-#### 1. Клонирование репозитория
+## Быстрый запуск
 
 ```bash
+# Клонируем
 git clone https://github.com/che1nov/task-splitter.git
 cd task-splitter
-```
 
-### 2. Настройка переменных окружения
-
-```bash
+# Копируем .env
 cp env.example .env
+
+# Если есть OpenAI ключ - добавь его в .env
+# OPENAI_API_KEY=sk-...
+
+# Запускаем всё
+make docker-up
 ```
 
-Отредактируйте `.env` файл и добавьте ваш OpenAI API ключ:
+Готово! Приложение доступно на:
+- Фронт: http://localhost:3000
+- API: http://localhost:8080
+- Swagger: http://localhost:8080/swagger/index.html
+- RabbitMQ UI: http://localhost:15672 (guest/guest)
+- Keycloak: http://localhost:8081 (admin/admin)
 
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-### 3. Запуск с Docker Compose
+### Полезные команды
 
 ```bash
-docker-compose up -d
+make help           # Показать все доступные команды
+make docker-up      # Запустить всё в Docker
+make docker-down    # Остановить все контейнеры
+make docker-logs    # Посмотреть логи
+make run-api        # Запустить только API
+make run-worker     # Запустить только Worker
+make test           # Запустить тесты
+make fmt            # Отформатировать код
 ```
 
-Это запустит все сервисы:
-- **API**: http://localhost:8080
-- **Frontend**: http://localhost:3000
-- **Keycloak**: http://localhost:8081
-- **RabbitMQ Management**: http://localhost:15672
+## Локальная разработка
 
-### 4. Инициализация Keycloak
+Если хочешь разрабатывать без докера:
 
-1. Откройте http://localhost:8081
-2. Войдите как admin/admin
-3. Создайте realm "tasksplitter"
-4. Создайте клиента "tasksplitter-api"
-5. Создайте пользователей и назначьте роли
-
-### 5. Проверка работы
-
-Откройте http://localhost:3000 и протестируйте приложение.
-
-## 🔧 Локальная разработка
-
-### Backend (Go)
-
+**Backend:**
 ```bash
-# Установка зависимостей
-go mod download
+# Поднимаем только инфру
+docker-compose up -d postgres redis rabbitmq
 
-# Запуск базы данных
-docker-compose up -d postgres redis rabbitmq keycloak
-
-# Запуск API сервера
+# Запускаем API
 go run cmd/server/main.go
 
-# Запуск Worker
+# В другом терминале запускаем Worker
 go run cmd/worker/main.go
 ```
 
-### Frontend (React)
-
+**Frontend:**
 ```bash
 cd web
-
-# Установка зависимостей
 npm install
-
-# Запуск в режиме разработки
 npm start
 ```
 
-## 📚 API Документация
+## API
 
-После запуска API сервера, Swagger документация доступна по адресу:
-http://localhost:8080/swagger/index.html
+Swagger документация: http://localhost:8080/swagger/index.html
 
-### Основные эндпоинты
+Основные endpoint'ы:
 
-#### Аутентификация
-- `POST /api/v1/auth/login` - Вход пользователя
-- `POST /api/v1/auth/register` - Регистрация пользователя
+**Авторизация:**
+- `POST /api/v1/auth/login` - логин
+- `POST /api/v1/auth/register` - регистрация
 
-#### Задачи
-- `GET /api/v1/tasks` - Получить список задач
-- `POST /api/v1/tasks` - Создать задачу
-- `GET /api/v1/tasks/{id}` - Получить задачу по ID
-- `PUT /api/v1/tasks/{id}` - Обновить задачу
-- `DELETE /api/v1/tasks/{id}` - Удалить задачу
+**Задачи:**
+- `GET /api/v1/tasks` - список задач
+- `POST /api/v1/tasks` - создать задачу
+- `GET /api/v1/tasks/:id` - получить задачу
+- `PUT /api/v1/tasks/:id` - обновить
+- `DELETE /api/v1/tasks/:id` - удалить
 
-#### Разбивка задач
-- `POST /api/v1/split` - Отправить задачу на разбивку
-- `GET /api/v1/split/{id}/status` - Получить статус разбивки
+**Разбивка:**
+- `POST /api/v1/split` - отправить задачу на разбивку
+- `GET /api/v1/split/:id/status` - проверить статус
 
-## 🧪 Тестирование
+Все защищенные endpoint'ы требуют JWT токен в заголовке `Authorization: Bearer <token>`
 
-### Backend тесты
+## Архитектура проекта
 
-```bash
-go test -v ./...
+Проект построен по принципам Clean Architecture. Вот структура:
+
+```
+internal/
+├── domain/          # Бизнес-логика и сущности
+│   ├── user.go
+│   ├── task.go
+│   ├── errors.go
+│   └── ...
+├── dto/             # Данные для передачи между слоями
+├── usecases/        # Use Cases (каждый endpoint = отдельный use case)
+│   ├── create_task_usecase.go
+│   ├── split_task_usecase.go
+│   └── interfaces.go
+├── adapters/        # Адаптеры к внешним системам
+│   ├── postgresql/
+│   ├── redis/
+│   └── rabbitmq/
+├── controllers/     # HTTP контроллеры
+│   └── http/
+└── app/             # Dependency Injection
 ```
 
-### Frontend тесты
+**Правила:**
+- Domain не зависит ни от чего
+- Use Cases содержат всю бизнес-логику
+- Adapters работают с БД/Redis/RabbitMQ
+- Controllers только принимают HTTP и отдают ответы
+
+## Конфигурация
+
+Всё настраивается через переменные окружения. См. `env.example`
+
+Основное:
+- `DATABASE_URL` - PostgreSQL (или отдельные DB_HOST, DB_PORT и т.д.)
+- `REDIS_HOST`, `REDIS_PORT` - для кеша
+- `RABBITMQ_URL` - для очередей
+- `OPENAI_API_KEY` - для разбивки задач через GPT
+- `GIGACHAT_*` - для разбивки через GigaChat (российская альтернатива)
+
+## Тестирование
 
 ```bash
-cd web
-npm test
+# Backend
+make test                 # Все тесты
+make test-coverage        # С отчетом о покрытии
+make test-unit            # Только unit тесты
+
+# Frontend
+make web-test
+
+# Линтеры
+make lint                 # Запустить golangci-lint
+make fmt                  # Отформатировать код
+make vet                  # Проверить код на ошибки
 ```
 
-### Интеграционные тесты
+## Деплой
 
+**Docker Compose (проще всего):**
 ```bash
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+make prod               # Запустить в production режиме
 ```
 
-## 📦 Развертывание
-
-### Production развертывание
-
-1. Настройте переменные окружения для production
-2. Используйте production Docker Compose файл:
-
+**VPS (Ubuntu/Debian):**
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+# Устанавливаем Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# Клонируем и запускаем
+git clone https://github.com/che1nov/task-splitter.git
+cd task-splitter
+cp env.example .env
+# Настраиваем .env под свои нужды
+make docker-up
 ```
 
-### Kubernetes
-
+**Kubernetes:**
 ```bash
 kubectl apply -f k8s/
 ```
 
-## 🔒 Безопасность
+## Безопасность
 
-- Все API эндпоинты защищены JWT токенами
-- Интеграция с Keycloak для управления пользователями
-- CORS настроен для безопасности
-- Валидация входных данных
-- Rate limiting для предотвращения злоупотреблений
+- JWT токены для авторизации
+- Можно прикрутить Keycloak для управления пользователями
+- CORS настроен
+- Валидация всех входящих данных
+- Rate limiting (TODO)
 
-## 📊 Мониторинг
+## Что дальше
 
-- Логирование всех операций
-- Метрики производительности
-- Health checks для всех сервисов
-- Prometheus метрики (планируется)
-
-## 🤝 Вклад в проект
-
-1. Fork репозитория
-2. Создайте feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit изменения (`git commit -m 'Add amazing feature'`)
-4. Push в branch (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
-
-## 📄 Лицензия
-
-Этот проект лицензирован под MIT License - см. файл [LICENSE](LICENSE) для деталей.
-
-## 🆘 Поддержка
-
-Если у вас есть вопросы или проблемы:
-
-1. Проверьте [Issues](https://github.com/your-username/task-splitter/issues)
-2. Создайте новый Issue с подробным описанием
-3. Свяжитесь с командой разработки
-
-## 🗺️ Roadmap
-
-- [ ] Поддержка дополнительных языков
-- [ ] Интеграция с календарями
-- [ ] Мобильное приложение
-- [ ] Расширенная аналитика
-- [ ] Интеграция с внешними сервисами (Jira, Trello)
-- [ ] Машинное обучение для улучшения разбивки задач
+Планы на будущее:
+- [ ] Добавить поддержку разных языков
+- [ ] Интеграцию с календарями (Google Calendar, Яндекс.Календарь)
+- [ ] Мобилку
+- [ ] Статистику и аналитику по задачам
+- [ ] Интеграцию с Jira/Trello
+- [ ] Улучшить разбивку задач с помощью fine-tuning моделей

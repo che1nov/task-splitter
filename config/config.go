@@ -41,6 +41,7 @@ type RedisConfig struct {
 }
 
 type RabbitMQConfig struct {
+	URL      string
 	Host     string
 	Port     string
 	User     string
@@ -85,6 +86,7 @@ func Load() *Config {
 			DB:       getEnvAsInt("REDIS_DB", 0),
 		},
 		RabbitMQ: RabbitMQConfig{
+			URL:      getEnv("RABBITMQ_URL", ""),
 			Host:     getEnv("RABBITMQ_HOST", "localhost"),
 			Port:     getEnv("RABBITMQ_PORT", "5672"),
 			User:     getEnv("RABBITMQ_USER", "guest"),
