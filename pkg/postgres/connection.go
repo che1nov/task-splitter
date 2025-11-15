@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 	"task-splitter/config"
-	"task-splitter/internal/models"
+	"task-splitter/internal/adapters/postgresql"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -52,11 +52,11 @@ func migrate(db *gorm.DB) error {
 
 	// Миграция всех моделей
 	err := db.AutoMigrate(
-		&models.User{},
-		&models.Task{},
-		&models.Subtask{},
-		&models.Template{},
-		&models.TaskSplitRequest{},
+		&postgresql.UserModel{},
+		&postgresql.TaskModel{},
+		&postgresql.SubtaskModel{},
+		&postgresql.TemplateModel{},
+		&postgresql.TaskSplitRequestModel{},
 	)
 	if err != nil {
 		return err
@@ -100,13 +100,13 @@ func createIndexes(db *gorm.DB) error {
 func seedData(db *gorm.DB) error {
 	// Проверяем, есть ли уже шаблоны
 	var count int64
-	db.Model(&models.Template{}).Count(&count)
+	db.Model(&postgresql.TemplateModel{}).Count(&count)
 	if count > 0 {
 		return nil // Данные уже есть
 	}
 
 	// Создаем базовые шаблоны
-	templates := []models.Template{
+	templates := []postgresql.TemplateModel{
 		{
 			Name:        "Общая разбивка задач",
 			Description: "Универсальный шаблон для разбивки любых задач",

@@ -79,7 +79,6 @@ func New(cfg *config.Config) (*App, error) {
 	splitRequestAdapter := postgresql.NewSplitRequestAdapter(db, log)
 
 	// Инициализация Use Cases для пользователей
-	createUserUC := usecases.NewCreateUserUseCase(userAdapter, log)
 	getUserUC := usecases.NewGetUserUseCase(userAdapter, log)
 	updateUserUC := usecases.NewUpdateUserUseCase(userAdapter, log)
 	loginUC := usecases.NewLoginUseCase(userAdapter, log)

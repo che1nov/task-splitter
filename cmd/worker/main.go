@@ -8,8 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"task-splitter/config"
-	"task-splitter/internal/models"
-	"task-splitter/internal/repository"
+	"task-splitter/internal/adapters/postgresql"
 	"task-splitter/pkg/gigachat"
 	"task-splitter/pkg/messaging"
 	"task-splitter/pkg/postgres"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	redisLib "github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -37,11 +37,6 @@ func main() {
 	// Инициализация GigaChat клиента
 	gigachatClient := gigachat.NewClient(cfg.GigaChat)
 
-	// Инициализация репозиториев
-	taskRepo := repository.NewTaskRepository(db)
-	templateRepo := repository.NewTemplateRepository(db)
-	splitRequestRepo := repository.NewTaskSplitRequestRepository(db)
-
 	// Инициализация сервиса сообщений
 	messagingService := messaging.NewRabbitMQService()
 	defer messagingService.Close()
@@ -50,9 +45,7 @@ func main() {
 	worker := NewNLPWorker(
 		gigachatClient,
 		redisClient,
-		taskRepo,
-		templateRepo,
-		splitRequestRepo,
+		db,
 		messagingService,
 	)
 
@@ -73,9 +66,7 @@ func main() {
 type NLPWorker struct {
 	gigachatClient   *gigachat.Client
 	redisClient      *redisLib.Client
-	taskRepo         repository.TaskRepository
-	templateRepo     repository.TemplateRepository
-	splitRequestRepo repository.TaskSplitRequestRepository
+	db               *gorm.DB
 	messagingService messaging.MessagingService
 }
 
@@ -83,17 +74,13 @@ type NLPWorker struct {
 func NewNLPWorker(
 	gigachatClient *gigachat.Client,
 	redisClient *redisLib.Client,
-	taskRepo repository.TaskRepository,
-	templateRepo repository.TemplateRepository,
-	splitRequestRepo repository.TaskSplitRequestRepository,
+	db *gorm.DB,
 	messagingService messaging.MessagingService,
 ) *NLPWorker {
 	return &NLPWorker{
 		gigachatClient:   gigachatClient,
 		redisClient:      redisClient,
-		taskRepo:         taskRepo,
-		templateRepo:     templateRepo,
-		splitRequestRepo: splitRequestRepo,
+		db:               db,
 		messagingService: messagingService,
 	}
 }
@@ -113,7 +100,7 @@ func (w *NLPWorker) handleSplitTaskRequest(message messaging.SplitTaskMessage) e
 	ctx := context.Background()
 
 	// Для демо создаем mock объект без сохранения в базу данных
-	splitRequest := &models.TaskSplitRequest{
+	splitRequest := &postgresql.TaskSplitRequestModel{
 		ID:         message.RequestID,
 		TaskID:     message.TaskID,
 		UserID:     message.UserID,
@@ -128,13 +115,13 @@ func (w *NLPWorker) handleSplitTaskRequest(message messaging.SplitTaskMessage) e
 	// }
 
 	// Получаем шаблон, если указан
-	var template *models.Template
+	var template *postgresql.TemplateModel
 	if message.TemplateID != nil {
-		t, err := w.templateRepo.GetByID(*message.TemplateID)
-		if err != nil {
+		var t postgresql.TemplateModel
+		if err := w.db.First(&t, *message.TemplateID).Error; err != nil {
 			log.Printf("Failed to get template: %v", err)
 		} else {
-			template = t
+			template = &t
 		}
 	}
 
@@ -226,7 +213,7 @@ func (w *NLPWorker) handleSplitTaskRequest(message messaging.SplitTaskMessage) e
 }
 
 // buildPrompt формирует промпт для GigaChat
-func (w *NLPWorker) buildPrompt(text string, template *models.Template) string {
+func (w *NLPWorker) buildPrompt(text string, template *postgresql.TemplateModel) string {
 	basePrompt := `Ты эксперт по планированию и разбивке задач. Твоя задача - разбить большую задачу на максимально мелкие и конкретные шаги.
 
 ПРАВИЛА РАЗБИВКИ:
@@ -260,8 +247,8 @@ func (w *NLPWorker) buildPrompt(text string, template *models.Template) string {
 }
 
 // parseSubtasks парсит результат GigaChat в структуры подзадач
-func (w *NLPWorker) parseSubtasks(result string) ([]models.Subtask, error) {
-	var subtasks []models.Subtask
+func (w *NLPWorker) parseSubtasks(result string) ([]postgresql.SubtaskModel, error) {
+	var subtasks []postgresql.SubtaskModel
 
 	// Пытаемся распарсить JSON
 	var jsonSubtasks []map[string]interface{}
@@ -272,7 +259,7 @@ func (w *NLPWorker) parseSubtasks(result string) ([]models.Subtask, error) {
 
 	// Конвертируем JSON в структуры
 	for i, item := range jsonSubtasks {
-		subtask := models.Subtask{
+		subtask := postgresql.SubtaskModel{
 			Title:       getString(item, "title"),
 			Description: getString(item, "description"),
 			Priority:    getString(item, "priority"),
@@ -297,12 +284,12 @@ func (w *NLPWorker) parseSubtasks(result string) ([]models.Subtask, error) {
 }
 
 // extractSubtasksFromText извлекает подзадачи из текстового ответа
-func (w *NLPWorker) extractSubtasksFromText(text string) ([]models.Subtask, error) {
+func (w *NLPWorker) extractSubtasksFromText(text string) ([]postgresql.SubtaskModel, error) {
 	// Простая реализация извлечения подзадач из текста
 	// В реальном приложении здесь должна быть более сложная логика парсинга
 
 	lines := strings.Split(text, "\n")
-	var subtasks []models.Subtask
+	var subtasks []postgresql.SubtaskModel
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -315,7 +302,7 @@ func (w *NLPWorker) extractSubtasksFromText(text string) ([]models.Subtask, erro
 		line = regexp.MustCompile(`^[-*]\s*`).ReplaceAllString(line, "")
 
 		if len(line) > 10 { // Минимальная длина подзадачи
-			subtask := models.Subtask{
+			subtask := postgresql.SubtaskModel{
 				Title:       line,
 				Description: "",
 				Priority:    "medium",
@@ -329,7 +316,7 @@ func (w *NLPWorker) extractSubtasksFromText(text string) ([]models.Subtask, erro
 }
 
 // saveSubtasks сохраняет подзадачи в базе данных
-func (w *NLPWorker) saveSubtasks(taskID uint, subtasks []models.Subtask) error {
+func (w *NLPWorker) saveSubtasks(taskID uint, subtasks []postgresql.SubtaskModel) error {
 	for _, subtask := range subtasks {
 		subtask.TaskID = taskID
 		subtask.Status = "pending"
